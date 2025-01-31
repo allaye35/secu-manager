@@ -2,23 +2,25 @@ package com.boulevardsecurity.app.secu_manager.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.List;
 
-@MappedSuperclass
+@Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public abstract class Utilisateur {
+@Builder
+public class Certification {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
     private String nom;
-    private String email;
 
-    @Enumerated(EnumType.STRING)
-    private Role role;
+    private String organisme;
 
-    @ElementCollection
-    private List<String> permissions;
+    private String dateObtention;
+
+    @ManyToOne
+    @JoinColumn(name = "agent_id", nullable = false)
+    private Agent agent; // Relation inverse
 }

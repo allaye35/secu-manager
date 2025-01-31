@@ -1,14 +1,20 @@
 package com.boulevardsecurity.app.secu_manager.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import lombok.*;
 
 @Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Administrateur extends Utilisateur {
     public void choisirStrategiePlanification(StrategiePlanification strategie) {
-        // Implémentation
+        System.out.println("Stratégie choisie : " + strategie);
     }
 
     public void gererMission() {
-        // Implémentation
+        System.out.println("Gérer les missions.");
     }
 }
+
