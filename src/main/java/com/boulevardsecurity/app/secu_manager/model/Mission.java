@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Data
@@ -36,7 +37,7 @@ public class Mission {
      */
     public void planifier(StrategiePlanification strategie) {
         if (strategie != null) {
-            strategie.planifierMission(agentAffecte, this);
+            strategie.planifierMission((List<Agent>) agentAffecte, this);
             this.statut = "Planifiée"; // Mise à jour du statut après la planification
         } else {
             throw new IllegalArgumentException("Aucune stratégie de planification fournie.");

@@ -7,96 +7,100 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-@EqualsAndHashCode(callSuper = true)
 @Entity
-@Data
+@Table(name = "agents")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "agents")
-public class Agent extends Utilisateur {
+public class Agent {
 
-    private boolean disponibilite; // Indique si l'agent est disponible
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
 
-    @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private String nom;
+    private String email;
+    private boolean disponibilite;
+    private String statut; // Actif, Suspendu, etc.
+
+    @Enumerated(EnumType.STRING)
+    private Role role; // Rôle de l'agent (ADMIN, SUPERVISEUR, AGENT)
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "agent_permissions", joinColumns = @JoinColumn(name = "agent_id"))
+    @Column(name = "permission")
+    private List<String> permissions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Certification> certifications = new ArrayList<>();
 
-    private String statut; // Statut de l'agent (Actif, Suspendu, etc.)
-
-    @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Absence> absences = new ArrayList<>();
 
-    @OneToMany(mappedBy = "agentAffecte", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "agentAffecte", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Mission> missions = new ArrayList<>();
 
-    @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "agent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Pointe> pointages = new ArrayList<>();
 
     /**
-     *  Effectue un pointage d'entrée et l'enregistre dans la liste des pointages.
+     * Enregistre un pointage (Entrée ou Sortie).
      */
-    public void pointerEntree(Date date) {
-        Pointe pointage = new Pointe();
-        pointage.setDateDebut(date);
-        pointage.setType("Entrée");
-        pointage.setAgent(this);
+    public void enregistrerPointage(Date date, String type) {
+        Pointe pointage = Pointe.builder()
+                .dateDebut(date)
+                .type(type)
+                .agent(this)
+                .build();
         pointages.add(pointage);
-        System.out.println(" Agent " + getNom() + " a pointé l'entrée à : " + date);
     }
 
     /**
-     *  Effectue un pointage de sortie et l'enregistre dans la liste des pointages.
-     */
-    public void pointerSortie(Date date) {
-        Pointe pointage = new Pointe();
-        pointage.setDateDebut(date);
-        pointage.setType("Sortie");
-        pointage.setAgent(this);
-        pointages.add(pointage);
-        System.out.println(" Agent " + getNom() + " a pointé la sortie à : " + date);
-    }
-
-    /**
-     *  Enregistre une absence en s'assurant qu'elle ne soit pas déjà enregistrée.
+     * Vérifie et enregistre une absence si elle n'existe pas déjà.
      */
     public void enregistrerAbsence(Date date, String motif) {
-        for (Absence absence : absences) {
-            if (absence.getDate().equals(date)) {
-                System.out.println("⚠ Absence déjà enregistrée pour la date : " + date);
-                return;
-            }
+        boolean dejaEnregistre = absences.stream().anyMatch(absence -> absence.getDate().equals(date));
+        if (dejaEnregistre) {
+            throw new IllegalArgumentException("⚠ Absence déjà enregistrée pour la date : " + date);
         }
-        Absence nouvelleAbsence = new Absence();
-        nouvelleAbsence.setDate(date);
-        nouvelleAbsence.setMotif(motif);
-        nouvelleAbsence.setAgent(this);
-        absences.add(nouvelleAbsence);
-        System.out.println(" Absence enregistrée : " + date + " - Motif : " + motif);
+        Absence absence = Absence.builder()
+                .date(date)
+                .motif(motif)
+                .agent(this)
+                .build();
+        absences.add(absence);
     }
 
     /**
-     *  Vérifie si l'agent est disponible sur une période donnée en fonction de ses missions.
+     * Vérifie si l'agent est disponible sur une période donnée.
      */
     public boolean verifierDisponibilite(Date dateDebut, Date dateFin) {
-        if (!disponibilite) {
-            System.out.println(" L'agent " + getNom() + " n'est pas disponible.");
-            return false;
-        }
-        for (Mission mission : missions) {
-            if (mission.verifierChevauchement(dateDebut, dateFin)) {
-                System.out.println(" Conflit avec une mission existante.");
-                return false;
-            }
-        }
-        System.out.println(" L'agent " + getNom() + " est disponible.");
-        return true;
+        if (!disponibilite) return false;
+        return missions.stream().noneMatch(mission -> mission.verifierChevauchement(dateDebut, dateFin));
     }
 
     /**
-     *  Planifie une mission en fonction d'une stratégie.
+     * Associe une mission à l'agent selon une stratégie.
      */
     public void planifierMission(StrategiePlanification strategie, Mission mission) {
         strategie.planifierMission(List.of(this), mission);
-        System.out.println("📅 Mission planifiée pour l'agent " + getNom());
+    }
+
+    /**
+     * Ajoute une permission à l'agent.
+     */
+    public void ajouterPermission(String permission) {
+        if (!permissions.contains(permission)) {
+            permissions.add(permission);
+        }
+    }
+
+    /**
+     * Supprime une permission à l'agent.
+     */
+    public void supprimerPermission(String permission) {
+        permissions.remove(permission);
     }
 }

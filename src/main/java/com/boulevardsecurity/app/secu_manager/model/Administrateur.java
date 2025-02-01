@@ -4,11 +4,11 @@ import jakarta.persistence.Entity;
 import lombok.*;
 
 @Entity
-@Data
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Administrateur extends Utilisateur {
+public class Administrateur  {
     public void choisirStrategiePlanification(StrategiePlanification strategie) {
         System.out.println("Stratégie choisie : " + strategie);
     }

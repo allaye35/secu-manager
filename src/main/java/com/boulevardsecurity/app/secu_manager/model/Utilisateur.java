@@ -5,7 +5,6 @@ import lombok.*;
 import java.util.List;
 
 @MappedSuperclass
-@Data
 @NoArgsConstructor
 @AllArgsConstructor
 public abstract class Utilisateur {
